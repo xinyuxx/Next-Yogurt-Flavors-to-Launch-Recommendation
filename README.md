@@ -21,4 +21,9 @@ Slider: Value between 0 and 100, NA means no response.
 Multiselect Checkbox: Value of 1 for each column they checked otherwise blank (NA)  
 15-37. Q12: Below is a list of both existing and new flavors. Assume these flavors are all available for your consumption. Please organize the flavors below into how often you would eat each one.  
 Each column corresponds to a flavor and contains a 0 (Regularly), 1 (Occasionally), 2 (Never) or NA (did not categorize that flavor or did not complete the question).  
-![Image](https://github.com/xinyuxx/Next-Yogurt-Flavors-to-Launch-Recommendation/blob/master/survey1.png)
+![Image](https://github.com/xinyuxx/Next-Yogurt-Flavors-to-Launch-Recommendation/blob/master/survey1.png)  
+![Image](https://github.com/xinyuxx/Next-Yogurt-Flavors-to-Launch-Recommendation/blob/master/survey2.png)  
+![Image](https://github.com/xinyuxx/Next-Yogurt-Flavors-to-Launch-Recommendation/blob/master/survey3.png)  
+
+Method:
+>Utilize R to conduct TURF analysis
