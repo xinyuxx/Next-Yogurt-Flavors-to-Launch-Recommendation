@@ -1,0 +1,162 @@
+---
+title: "Yogurt Flavor Code"
+date: "2/2/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+############################## SQL CODE - Q1 ##############
+select sum(Units) 'Units Sold',Class, Flavor1, Brand, sum(Sales) sales,sum(Sales)/sum(Units) price
+from storeItemSales join itemsAttributes on storeItemSales.`Item.Num`  = itemsAttributes.`Item.Num`
+where Class='Greek'
+group by Class, Brand, Flavor1;
+#############################          ###############
+
+############################   SQL CODE - Q2 #################
+select sum(Units) 'Units Sold',Class, Flavor1, Brand, sum(Sales) sales,sum(Sales)/sum(Units) price
+from storeItemSales join itemsAttributes on storeItemSales.`Item.Num`  = itemsAttributes.`Item.Num`
+where  Class ='Regular'
+group by Class,Brand, Flavor1;
+###########################               ##################
+
+
+```{r}
+rm(list=ls())
+library(foreign)
+library(ggplot2)
+setwd("/Users/zhaoyiqun/Desktop/")
+sur = read.csv("survResponse.csv")
+
+```
+
+##Data Cleaning
+```{r}
+# 1) delete those surveys that took an unusually long time to complete
+t.test(as.numeric(difftime(surv$V9, surv$V8, units = "mins"))) # 95% between 10.5 & 45 min
+surv <- surv[difftime(surv$V9, surv$V8, units = "mins") <= 45,]
+# 2) delete those incomplete surveys
+surv <- surv[,-c(2:14)]
+surv <- surv[rowSums(is.na(surv)) < ncol(surv)-1, ] # delete the rows that only contain NA
+surv[,2:24][is.na(surv[,2:24])] <- 3 # replace all the NA in col 2-24 with another number 3
+names(surv)[2:24] <- c('Almond','Banana','Black Cherry','Buleberry','Caramel',
+                       'Chai','Chocolate','Cinnamon','Coconut','Honey',
+                       'Key Lime Pie','Lemon','Mango','Maple','Peach','Pineapple',
+                       'Plain','Pomegranate','Raspberry','Strawberry',
+                       'Strawberry Banana','Vanilla','Vanilla Banana')
+```
+
+## Output for Slide 4 (Q3) 
+```{r}
+freq <- data.frame(Regularly = colSums(surv[2:24]==0),
+                   Occasionally = colSums(surv[2:24]==1),
+                   Never = colSums(surv[2:24]==2))
+# colSums(Boolean data type): return the number of TRUE value each col
+freq$RegFreq <- freq$Regularly/rowSums(freq)
+freq$OccFreq <- freq$Occasionally/rowSums(freq)
+freq$NevFreq <- freq$Never/rowSums(freq)
+freq[freq$RegFreq == max(freq$RegFreq),] # Bluberry is the most popular flavor
+```
+
+
+## Output for Slide 5 (Q4)
+```{r}
+for (i in 1:696){
+  for (j in 2:24){
+    if (surv[i,j]==0){
+      surv[i,j] = 10
+    } else if (surv[i,j]==1 | surv[i,j]==2 | surv[i,j]==3){
+      surv[i,j] = 0
+    }
+    if(surv[i,j]==10){
+      surv[i,j] = 1
+    }
+  }
+}
+
+# measReach: measures reach given set of options and data
+# Arguments:
+# data contains measure of proxy for whether will buy or not, positive values mean will buy/use
+# Return:
+# scalar, reach, calculated as % of all cases that will buy at least one in set
+measReach = function(data){
+  if(is.null(dim(data))){ #if data is a vector
+    ret = sum(data>0,na.rm=TRUE)/length(data)
+  } else if(ncol(data)==1){ #if data has only one column
+    ret = sum(data>0,na.rm=TRUE)/length(data)
+  }
+  else { #if data has multiple columns
+    ret = sum(apply(data>0,1,any),na.rm=TRUE)/nrow(data)
+  }                        # any: check is any of the value is true
+}
+# evalNext: evaluates the next set, nextSet using measure given existing set in data
+# Arguments:
+#   nextSet, set are numeric indexes into columns of data
+#   data contains measure of proxy for whether will buy or not, positive values mean will buy/use
+#   measure is a valid measure of evaluation when passed a subset of columns in data
+# Return:
+#   numeric vector of values calculated using measure for each option in nextSet given set already exists
+evalNext = function(nextSet,set,data,measure=measReach){
+  vals = numeric(length(nextSet)) #set up storage for return value
+  for(k in 1:length(nextSet)){ #loop over the options in nextSet
+    if(length(set)==0){         #if no existing options
+      vals[k] = measure(data[,nextSet[k]]) 
+    } else {                    #if existing options
+      vals[k] = measure(data[,c(set,nextSet[k])])
+    }
+  }
+  vals
+}
+# evalFull: creates optimal full evaluation starting from origSet and considering remaining options fullSet
+# Arguments:
+#   fullSet, origSet are numeric indexes into columns of data
+#   data contains measure of proxy for whether will buy or not, positive values mean will buy/use
+#   measure is a valid measure of evaluation when passed a subset of columns in data
+# Return:
+#   turf object, an named list containing
+#   ordSet, the ordered set of optimal options to add to original set
+#   optVals, the optimal values of measure as you add each optimal option
+#   origSet, same value as passed, the original set of options included
+#   origVal, the value of measure for the original set
+#   measure, same value as passed, the measure used
+#   pnames, the names of the options taken from the columns of data
+evalFull = function(fullSet,data,origSet=numeric(0),measure=measReach){
+  curSet = origSet; #the current set of included options
+  remSet = fullSet[!(fullSet%in%origSet)]; #the remaining set of options to consider
+  K = length(remSet)
+  optVals = numeric(K); #create storage for the optimal values (optVals)
+  ordSet = numeric(K); #create storage for ordered set
+  for(i in 1:K){          #loop over the remaining set consider
+    tmpVals = evalNext(remSet,curSet,data,measure); #calculate vector of next evaluations
+    k = which.max(tmpVals) #pick the option that gives max measure, note will pick first case if a tie!
+    optVals[i] = tmpVals[k] #add optimal value
+    ordSet[i] = remSet[k]   #add index of option that creates optimal value
+    curSet = c(curSet,ordSet[i]); #add optimal next option to current set
+    remSet = remSet[-k];          #delete optimal next option from remaining set
+  }
+  #creaets a "TURF object" containing ordSet, optVals, origSet, origVal, measure, and pnames
+  turf = list(ordSet=ordSet,optVals=optVals,origSet=origSet,origVal=measure(data[,origSet]),measure=measure,pnames=colnames(data))
+  class(turf)="TURF" #makes the list into a TURF object so that can call plot.TURF
+  turf  #return turf
+}
+# creates ggplot barplot for a turf object
+plot.TURF=function(turf,...){
+  if(class(turf)!="TURF"){
+    cat("Object not a turf.")
+  } else {
+    df = with(turf,data.frame(vals = c(origVal,optVals),titles=paste(0:length(ordSet),c("Original",pnames[ordSet]),sep=":")))
+    #with(turf,barplot(c(origVal,optVals),names.arg=c("Original",pnames[ordSet])))
+    dodge = position_dodge(width=.75); ##to form constant dimensions positioning for all geom's
+    gp = ggplot(df,aes(y=vals,x=titles))
+    gp + geom_bar(position=dodge,stat="identity",col=1,fill=4,width=.75)
+  }
+}
+
+brandsPurch = surv[,2:24]
+#names(brandsPurch)=substr(names(brandsPurch),10,100)
+turf = evalFull(c(1:23),brandsPurch,c(4,10,15,17,20,22))
+plot(turf)
+```
