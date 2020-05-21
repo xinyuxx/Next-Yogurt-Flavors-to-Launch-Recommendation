@@ -11,11 +11,11 @@ The survey was taken as a non-random sample from the population of customers. Th
 1. ID: The UserID for the respondent.
 2. V8: Start Date/Time of the response
 3. V9: End Date/Time of the response
-4. V10: Whether finished the response
+4. V10: Whether finished the response  
 Values: 1= finished, 0=not finished
-5. Q1: Have you eaten Greek Yogurt in the past month?
+5. Q1: Have you eaten Greek Yogurt in the past month?  
 Radio Button: Yes (1) or No (0). NA means no response.
-6. Q2: Of all the yogurt you have eaten in the past month, what percentage was Greek Yogurt?
+6. Q2: Of all the yogurt you have eaten in the past month, what percentage was Greek Yogurt?  
 Slider: Value between 0 and 100, NA means no response.  
 7-14. Q3: What attracts you to Greek Yogurt? (Check all that apply)
 Multiselect Checkbox: Value of 1 for each column they checked otherwise blank (NA)  
